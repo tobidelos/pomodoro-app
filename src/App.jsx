@@ -4,16 +4,15 @@ import {
   RotateCcw, X, Menu
 } from 'lucide-react';
 
-// --- 1. IMPORTS DE FIREBASE (La magia de la nube) ---
 import { auth, db } from './config/firebase';
 import { onAuthStateChanged, signOut, signInWithCustomToken } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
-// --- 2. IMPORTS LOCALES ---
+// --- IMPORTS LOCALES ---
 import { getT, LANGUAGES } from './data/translations';
 import { LEVEL_THRESHOLDS, INITIAL_FRIENDS, QUOTES, FOCUS_SOUNDS } from './data/constants';
 
-// --- 3. IMPORTS DE COMPONENTES ---
+// --- IMPORTS DE COMPONENTES ---
 import AuthScreen from './components/AuthScreen';
 import Timer from './components/Timer';
 import Agenda from './components/Agenda';
@@ -29,7 +28,7 @@ const App = () => {
   const [userSettings, setUserSettings] = useState({ language: 'en' });
   const [showLangModal, setShowLangModal] = useState(false);
 
-  // Estados de Datos (Ahora sincronizados con Firebase)
+  // Estados de Datos 
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
   const [tasks, setTasks] = useState([]);

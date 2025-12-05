@@ -1,49 +1,197 @@
-import React from 'react';
-import { Users, Search, UserPlus, UserMinus, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Search, UserPlus, UserMinus, AlertCircle, Loader2, User } from 'lucide-react';
+import { 
+  collection, query, where, getDocs, updateDoc, doc, arrayUnion, arrayRemove, getDoc, getFirestore 
+} from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { initializeApp } from 'firebase/app';
+import { db, auth } from '../config/firebase';
 
-const Social = ({ 
-  friends, addFriend, removeFriend, t, newFriendName, setNewFriendName, 
-  setSelectedFriend, friendToDelete, setFriendToDelete, executeRemoveFriend 
-}) => {
+const Social = ({ user, t = (key) => key }) => {   
+  // Estados de Datos
+  const [myFriends, setMyFriends] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  
+  // Estados de UI/Formularios
+  const [searchName, setSearchName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+  
+  // Estados para Modal de Borrado
+  const [friendToDelete, setFriendToDelete] = useState(null);
+
+  // 1. CARGAR AMIGOS (Al iniciar)
+  useEffect(() => {
+    const fetchFriends = async () => {
+      if (!user) return;
+      try {
+        const myDoc = await getDoc(doc(db, "users", user.uid));
+        if (myDoc.exists()) {
+            const friendIds = myDoc.data()?.friends || [];
+            if (friendIds.length > 0) {
+                const friendsData = [];
+                for (const id of friendIds) {
+                    const fDoc = await getDoc(doc(db, "users", id));
+                    if (fDoc.exists()) {
+                        friendsData.push({ id: fDoc.id, ...fDoc.data() });
+                    }
+                }
+                setMyFriends(friendsData);
+            }
+        }
+      } catch (e) { console.error("Error cargando amigos", e); }
+    };
+    fetchFriends();
+  }, [user]);
+
+  // 2. BUSCAR USUARIOS (CORREGIDO PARA MOSTRAR ERROR)
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchName.trim()) return;
+    setLoading(true); setMsg(''); setSearchResults([]);
+    
+    try {
+      console.log("🔍 Buscando usuario:", searchName); // LOG DE DEPURACIÓN
+      
+      const q = query(collection(db, "users"), where("displayName", "==", searchName));
+      const querySnapshot = await getDocs(q);
+      
+      const found = [];
+      querySnapshot.forEach((d) => {
+        if (d.id !== user.uid) found.push({ id: d.id, ...d.data() });
+      });
+      
+      console.log("✅ Resultados encontrados:", found.length); // LOG DE DEPURACIÓN
+      
+      setSearchResults(found);
+      if (found.length === 0) setMsg('Usuario no encontrado.');
+      
+    } catch (error) { 
+      // AQUI ESTABA EL PROBLEMA: Ahora sí mostramos el error real
+      console.error("❌ ERROR CRÍTICO AL BUSCAR:", error);
+      
+      if (error.code === 'permission-denied') {
+          setMsg('Error de permisos. Revisa las reglas de Firestore.');
+      } else if (error.code === 'failed-precondition') {
+          setMsg('Falta crear un índice. Mira la consola para el link.');
+      } else {
+          setMsg(`Error técnico: ${error.message}`); 
+      }
+    } 
+    finally { setLoading(false); }
+  };
+
+  // 3. AGREGAR AMIGO
+  const executeAddFriend = async (friendId, friendName) => {
+    try {
+      await updateDoc(doc(db, "users", user.uid), { friends: arrayUnion(friendId) });
+      setMsg(`¡${friendName} agregado!`);
+      setSearchResults([]); setSearchName('');
+      // Actualizar UI localmente
+      setMyFriends(prev => [...prev, { id: friendId, displayName: friendName, level: 1 }]);
+    } catch (error) { console.error(error); setMsg('Error al agregar.'); }
+  };
+
+  // 4. ELIMINAR AMIGO (Lógica del Modal)
+  const executeRemoveFriend = async () => {
+    if (!friendToDelete) return;
+    try {
+      await updateDoc(doc(db, "users", user.uid), { friends: arrayRemove(friendToDelete.id) });
+      setMyFriends(prev => prev.filter(f => f.id !== friendToDelete.id));
+      setFriendToDelete(null);
+    } catch (error) { console.error(error); }
+  };
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
+    <div className="pb-24 space-y-6 duration-300 animate-in fade-in slide-in-from-bottom-4">
+       
+       {/* --- MODAL DE CONFIRMACIÓN (Tu diseño) --- */}
        {friendToDelete && (
            <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in zoom-in-95">
-               <div className="bg-white rounded-2xl p-6 w-full max-w-xs text-center shadow-2xl">
-                   <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><AlertCircle size={24}/></div>
-                   <h3 className="font-bold text-lg mb-2">{t('confirmTitle')}</h3>
-                   <p className="text-sm text-gray-500 mb-6">{t('confirmMsg')} <strong>{friends.find(f=>f.id===friendToDelete)?.name}</strong>?</p>
+               <div className="w-full max-w-xs p-6 text-center bg-white shadow-2xl rounded-2xl">
+                   <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 text-red-500 bg-red-100 rounded-full"><AlertCircle size={24}/></div>
+                   <h3 className="mb-2 text-lg font-bold">Eliminar amigo</h3>
+                   <p className="mb-6 text-sm text-gray-500">¿Estás seguro de que quieres eliminar a <strong>{friendToDelete.displayName}</strong>?</p>
                    <div className="flex gap-2">
-                       <button onClick={()=>setFriendToDelete(null)} className="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl font-bold text-sm">{t('cancel')}</button>
-                       <button onClick={executeRemoveFriend} className="flex-1 bg-red-500 text-white py-2.5 rounded-xl font-bold text-sm">{t('confirmYes')}</button>
+                       <button onClick={()=>setFriendToDelete(null)} className="flex-1 bg-gray-100 text-gray-600 py-2.5 rounded-xl font-bold text-sm">Cancelar</button>
+                       <button onClick={executeRemoveFriend} className="flex-1 bg-red-500 text-white py-2.5 rounded-xl font-bold text-sm">Eliminar</button>
                    </div>
                </div>
            </div>
        )}
 
-       <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex items-center justify-between"><h3 className="font-bold text-gray-900 flex items-center gap-2"><Users className="text-indigo-500" size={20} /> {t('friendsList')}</h3><span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-1 rounded-full">{friends.length}</span></div>
-          <form onSubmit={addFriend} className="p-4 bg-gray-50 border-b border-gray-100 flex gap-2"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} /><input type="text" value={newFriendName} onChange={(e) => setNewFriendName(e.target.value)} placeholder={t('addFriend')} className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-indigo-500 transition-colors"/></div><button type="submit" disabled={!newFriendName.trim()} className="bg-indigo-600 text-white p-2 rounded-xl disabled:opacity-50 hover:bg-indigo-700 transition-colors"><UserPlus size={18} /></button></form>
-          <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
-             {friends.length === 0 && <div className="p-8 text-center text-gray-400 text-sm">No friends added yet.</div>}
-             {friends.map((friend) => (
-               <div key={friend.id} onClick={() => setSelectedFriend(friend)} className="p-4 flex items-center justify-between group hover:bg-gray-50 transition-colors cursor-pointer">
+       {/* --- CAJA PRINCIPAL --- */}
+       <div className="overflow-hidden bg-white border border-gray-100 shadow-lg rounded-3xl">
+          
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="flex items-center gap-2 font-bold text-gray-900">
+                  <Users className="text-indigo-500" size={20} /> Lista de Amigos
+              </h3>
+              <span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-1 rounded-full">{myFriends.length}</span>
+          </div>
+          
+          {/* Buscador (Integrado con tu estilo) */}
+          <div className="p-4 space-y-3 border-b border-gray-100 bg-gray-50">
+              <form onSubmit={handleSearch} className="flex gap-2">
+                  <div className="relative flex-1">
+                      <Search className="absolute text-gray-400 -translate-y-1/2 left-3 top-1/2" size={16} />
+                      <input 
+                          type="text" 
+                          value={searchName} 
+                          onChange={(e) => setSearchName(e.target.value)} 
+                          placeholder="Buscar usuario por nombre..." 
+                          className="w-full py-2 pr-4 text-sm transition-colors bg-white border border-gray-200 outline-none pl-9 rounded-xl focus:border-indigo-500"
+                      />
+                  </div>
+                  <button type="submit" disabled={!searchName.trim() || loading} className="p-2 text-white transition-colors bg-indigo-600 rounded-xl disabled:opacity-50 hover:bg-indigo-700">
+                      {loading ? <Loader2 size={18} className="animate-spin"/> : <Search size={18} />}
+                  </button>
+              </form>
+              
+              {/* Resultados de Búsqueda (Se muestran aquí) */}
+              {searchResults.length > 0 && (
+                  <div className="p-2 space-y-2 bg-white border border-indigo-100 rounded-xl animate-in slide-in-from-top-2">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase ml-2">Resultados</p>
+                      {searchResults.map(res => (
+                          <div key={res.id} className="flex items-center justify-between p-2 transition-colors rounded-lg hover:bg-indigo-50">
+                              <div className="flex items-center gap-2">
+                                  <div className="flex items-center justify-center w-8 h-8 text-xs font-bold text-indigo-600 bg-indigo-100 rounded-full">{res.displayName?.[0]}</div>
+                                  <span className="text-sm font-bold text-gray-700">{res.displayName}</span>
+                              </div>
+                              <button onClick={() => executeAddFriend(res.id, res.displayName)} className="bg-indigo-600 text-white p-1.5 rounded-lg"><UserPlus size={14}/></button>
+                          </div>
+                      ))}
+                  </div>
+              )}
+              {msg && <p className="p-2 text-xs font-medium text-center text-red-500 rounded-lg bg-red-50">{msg}</p>}
+          </div>
+
+          {/* Lista de Amigos */}
+          <div className="overflow-y-auto divide-y divide-gray-100 max-h-96">
+             {myFriends.length === 0 && <div className="p-8 text-sm text-center text-gray-400">No tienes amigos agregados aún.</div>}
+             
+             {myFriends.map((friend) => (
+               <div key={friend.id} className="flex items-center justify-between p-4 transition-colors group hover:bg-gray-50">
                   <div className="flex items-center gap-3">
                      <div className="relative">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${friend.avatar}`}>{friend.name.charAt(0)}</div>
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full ${friend.status === 'online' || friend.status === 'focus' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                        <div className="flex items-center justify-center w-10 h-10 overflow-hidden text-sm font-bold text-indigo-700 bg-indigo-100 rounded-full">
+                            {friend.photoURL ? <img src={friend.photoURL} className="object-cover w-full h-full" /> : friend.displayName?.[0]}
+                        </div>
+                        {/* Indicador de estado simulado */}
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 border-2 border-white rounded-full bg-green-500"></div>
                      </div>
                      <div>
-                        <p className="text-sm font-bold text-gray-800">{friend.name}</p>
+                        <p className="text-sm font-bold text-gray-800">{friend.displayName}</p>
                         <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                           {friend.status === 'online' ? <span className="text-green-600 font-medium">{t('studying')}: {friend.lastTopic}</span> : <span>{t('lastSeen')} {friend.lastSeen}</span>}
+                           Nivel {friend.level || 1} • {friend.xp || 0} XP
                         </p>
                      </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                     <button className="text-indigo-600 text-xs font-bold bg-indigo-50 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-all">{t('viewProfile')}</button>
-                     <button onClick={(e) => { e.stopPropagation(); setFriendToDelete(friend.id); }} className="text-gray-300 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition-all" title={t('remove')}>
-                        <UserMinus size={16} />
+                  
+                  <div className="flex items-center gap-2">
+                     <button onClick={() => setFriendToDelete(friend)} className="p-2 text-gray-300 transition-all rounded-lg hover:text-red-500 hover:bg-red-50" title="Eliminar">
+                        <UserMinus size={18} />
                      </button>
                   </div>
                </div>
