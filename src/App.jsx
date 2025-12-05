@@ -1,23 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Clock, 
-  Calendar as CalendarIcon, 
-  BarChart2, 
-  Users, 
-  User, 
-  LogOut, 
-  Globe, 
-  RotateCcw,
-  X
+  Clock, Calendar as CalendarIcon, BarChart2, Users, User, LogOut, Globe, 
+  RotateCcw, X, Menu
 } from 'lucide-react';
 
-// --- IMPORTS DE CONFIGURACIÓN Y DATOS ---
-import { auth } from './config/firebase';
-import { onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+// --- 1. IMPORTS DE FIREBASE (La magia de la nube) ---
+import { auth, db } from './config/firebase';
+import { onAuthStateChanged, signOut, signInWithCustomToken } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+
+// --- 2. IMPORTS LOCALES ---
 import { getT, LANGUAGES } from './data/translations';
 import { LEVEL_THRESHOLDS, INITIAL_FRIENDS, QUOTES, FOCUS_SOUNDS } from './data/constants';
 
-// --- IMPORTS DE COMPONENTES ---
+// --- 3. IMPORTS DE COMPONENTES ---
 import AuthScreen from './components/AuthScreen';
 import Timer from './components/Timer';
 import Agenda from './components/Agenda';
@@ -33,14 +29,14 @@ const App = () => {
   const [userSettings, setUserSettings] = useState({ language: 'en' });
   const [showLangModal, setShowLangModal] = useState(false);
 
-  // Estados de datos 
-  const [xp, setXp] = useState(1250);
-  const [level, setLevel] = useState(3);
-  const [friends, setFriends] = useState(INITIAL_FRIENDS);
-  const [newFriendName, setNewFriendName] = useState('');
-  const [localEvents, setLocalEvents] = useState([]);
+  // Estados de Datos (Ahora sincronizados con Firebase)
+  const [xp, setXp] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [tasks, setTasks] = useState([]);
+  const [friends, setFriends] = useState(INITIAL_FRIENDS); // Por ahora local
+  const [localEvents, setLocalEvents] = useState([]);      // Por ahora local
   
-  // Estados del timer y audio
+  // Estados del Timer y Audio
   const [mode, setMode] = useState('focus');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
@@ -48,8 +44,7 @@ const App = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [quote, setQuote] = useState(QUOTES[0]);
   
-  // Estados de tareas y modales
-  const [tasks, setTasks] = useState([]);
+  // Estados Auxiliares
   const [newTask, setNewTask] = useState('');
   const [showEventModal, setShowEventModal] = useState(false);
   const [newEvent, setNewEvent] = useState({ title: '', time: '', type: 'study' });
@@ -58,33 +53,49 @@ const App = () => {
   const timerRef = useRef(null);
   const audioRef = useRef(null);
 
-  // Helper de traducción
   const t = (key, subKey) => getT(userSettings.language || 'en', key, subKey);
   const currentLevelMax = LEVEL_THRESHOLDS[level] || 10000;
-  const isRootUser = user?.email === "tobiasdelosreyes12@gmail.com";
 
-  // --- EFECTOS (LOGICA) ---
+  // --- EFECTOS (LÓGICA) ---
 
-  //Autenticación
+  // 1. Autenticación y Carga de Datos
   useEffect(() => {
-    const initAuth = async () => {
-        if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
-            try {
-                await signInWithCustomToken(auth, window.__initial_auth_token);
-            } catch(e) { console.error("Auth Token Error", e); }
-        } else {
-        }
-    };
-    initAuth();
-
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      
+      if (currentUser) {
+        // ¡Aquí ocurre la magia! Cargamos los datos de la nube
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          // Si el usuario ya existe, cargamos sus datos
+          const data = userSnap.data();
+          setXp(data.xp || 0);
+          setLevel(data.level || 1);
+          setTasks(data.tasks || []);
+        } else {
+          // Si es nuevo, creamos su perfil en la base de datos (Gratis: 1 escritura)
+          await setDoc(userRef, {
+            email: currentUser.email,
+            xp: 0,
+            level: 1,
+            tasks: [],
+            createdAt: new Date()
+          });
+        }
+      } else {
+        // Si cierra sesión, reseteamos todo
+        setXp(0);
+        setLevel(1);
+        setTasks([]);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  //Sistema de audio
+  // 2. Sistema de Audio
   useEffect(() => {
     try {
         if (activeSound) {
@@ -112,96 +123,112 @@ const App = () => {
     }
   }, [activeSound]);
 
-  //Lógica del timer
+  // 3. Lógica del Timer (Optimizado para ahorrar escrituras)
   useEffect(() => {
     if (isActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
-        if (mode === 'focus' && timeLeft % 60 === 0) setXp(prev => prev + 2);
       }, 1000);
     } else if (timeLeft === 0) {
+      // ¡EL TIMER TERMINÓ! 
       setIsActive(false); 
       clearInterval(timerRef.current);
+      
       if (mode === 'focus') { 
-          setXp(prev => prev + 100); 
-          setShowConfetti(true); 
-          setTimeout(() => setShowConfetti(false), 5000); 
+          handleSessionComplete(); // Guardamos progreso en la nube
+      } else {
+          // Si termina el descanso, solo sonido
+          new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play();
       }
     }
     return () => clearInterval(timerRef.current);
   }, [isActive, timeLeft, mode]);
 
-  // Subir de nivel
-  useEffect(() => { 
-      if (xp >= currentLevelMax) setLevel(prev => prev + 1); 
-  }, [xp, currentLevelMax]);
+  // --- FUNCIONES DE BASE DE DATOS (SYNC) ---
 
+  const handleSessionComplete = async () => {
+      // 1. Efectos visuales inmediatos
+      const xpGained = 100;
+      setXp(prev => prev + xpGained); 
+      setShowConfetti(true); 
+      setTimeout(() => setShowConfetti(false), 5000);
 
-  // --- HANDLERS (FUNCIONES) ---
+      // 2. Cálculo de nivel
+      let newLevel = level;
+      if ((xp + xpGained) >= (LEVEL_THRESHOLDS[level] || 10000)) {
+          newLevel = level + 1;
+          setLevel(newLevel);
+      }
 
-  const handleLoginSuccess = () => {
-      // Lógica post-login 
+      // 3. GUARDAR EN FIREBASE (Solo 1 escritura al terminar)
+      if (user) {
+          try {
+              const userRef = doc(db, "users", user.uid);
+              await updateDoc(userRef, {
+                  xp: xp + xpGained,
+                  level: newLevel
+              });
+              console.log("Progreso guardado en la nube ☁️");
+          } catch (e) {
+              console.error("Error guardando progreso", e);
+          }
+      }
   };
 
-  const switchMode = (m) => { 
-      setMode(m); 
-      setIsActive(false); 
-      setTimeLeft(m === 'focus' ? 25*60 : m === 'short' ? 5*60 : 15*60); 
-  };
-
-  const toggleTimer = () => setIsActive(!isActive);
-  
-  const resetTimer = () => { 
-      setIsActive(false); 
-      setTimeLeft(mode === 'focus' ? 25*60 : mode === 'short' ? 5*60 : 15*60); 
-  };
-
-  const addTask = (e) => { 
+  const addTask = async (e) => { 
       e.preventDefault(); 
       if(!newTask.trim()) return; 
-      setTasks([{ id: Date.now(), text: newTask, completed: false }, ...tasks]);
+
+      const taskObj = { id: Date.now(), text: newTask, completed: false };
+      
+      // 1. Actualizar visualmente (rápido)
+      const updatedTasks = [taskObj, ...tasks];
+      setTasks(updatedTasks);
       setNewTask(''); 
+
+      // 2. Guardar en Firebase
+      if (user) {
+          const userRef = doc(db, "users", user.uid);
+          await updateDoc(userRef, { tasks: updatedTasks });
+      }
   };
 
-  const toggleTask = (task) => { 
-      setTasks(tasks.map(t => t.id === task.id ? { ...t, completed: !t.completed } : t));
+  const toggleTask = async (taskToToggle) => { 
+      // 1. Actualizar visualmente
+      const updatedTasks = tasks.map(t => 
+          t.id === taskToToggle.id ? { ...t, completed: !t.completed } : t
+      );
+      setTasks(updatedTasks);
+
+      // 2. Guardar en Firebase
+      if (user) {
+          const userRef = doc(db, "users", user.uid);
+          await updateDoc(userRef, { tasks: updatedTasks });
+      }
   };
 
-  const deleteTask = (id) => setTasks(tasks.filter(t => t.id !== id));
+  const deleteTask = async (id) => { 
+      // 1. Actualizar visualmente
+      const updatedTasks = tasks.filter(t => t.id !== id);
+      setTasks(updatedTasks);
 
-  const addFriend = (e) => { 
-      e.preventDefault(); 
-      if (!newFriendName.trim()) return; 
-      setFriends([...friends, { 
-          id: Date.now(), 
-          name: newFriendName, 
-          status: 'offline', 
-          avatar: 'bg-indigo-100 text-indigo-700', 
-          level: 1, 
-          xp: 0 
-      }]); 
-      setNewFriendName(''); 
+      // 2. Guardar en Firebase
+      if (user) {
+          const userRef = doc(db, "users", user.uid);
+          await updateDoc(userRef, { tasks: updatedTasks });
+      }
   };
-
-  const handleAddEvent = (e) => { 
-      e.preventDefault(); 
-      if(!newEvent.title || !newEvent.time) return; 
-      setLocalEvents([...localEvents, { id: Date.now(), ...newEvent }]); 
-      setNewEvent({ title: '', time: '', type: 'study' }); 
-      setShowEventModal(false); 
-  };
-
 
   // --- RENDERIZADO ---
 
   if (loading) return <div className="flex items-center justify-center min-h-screen font-bold text-indigo-600 bg-gray-50 animate-pulse">Cargando SyncStudy...</div>;
 
-  if (!user) return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
+  if (!user) return <AuthScreen onLoginSuccess={() => {}} />;
 
   return (
     <div className="relative flex flex-col items-center min-h-screen p-4 pb-24 font-sans text-gray-800 bg-gray-50 selection:bg-indigo-100">
       
-      {/* Modal de idioma */}
+      {/* Modal de Idioma */}
       {showLangModal && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
              <div className="bg-white rounded-3xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
@@ -221,7 +248,7 @@ const App = () => {
         </div>
       )}
 
-      {/* Main container */}
+      {/* Main Container */}
       <div className="flex-1 w-full max-w-md mx-auto">
         
         {/* Header */}
@@ -238,7 +265,7 @@ const App = () => {
           
           <div className="flex items-center gap-3">
              <div className="hidden text-right sm:block">
-                 <p className="text-xs font-bold text-gray-900">{user.displayName || "Student"} {isRootUser && <span className="text-indigo-600">({t('admin')})</span>}</p>
+                 <p className="text-xs font-bold text-gray-900">{user.displayName || "Estudiante"}</p>
                  <button onClick={() => signOut(auth)} className="text-[10px] text-red-400 hover:text-red-600 flex items-center gap-1 justify-end w-full">
                      {t('exit')} <LogOut size={10}/>
                  </button>
@@ -248,7 +275,6 @@ const App = () => {
                     <img src={user.photoURL} alt="Profile" className="object-cover w-full h-full" /> : 
                     <div className="flex items-center justify-center w-full h-full font-bold text-gray-500">{user.displayName?.charAt(0) || 'S'}</div>
                  }
-                 {isRootUser && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>}
              </button>
           </div>
         </header>
@@ -257,21 +283,27 @@ const App = () => {
         <main>
             {activeTab === 'timer' && (
                 <Timer 
-                    mode={mode} switchMode={switchMode} timeLeft={timeLeft} isActive={isActive} 
-                    toggleTimer={toggleTimer} resetTimer={resetTimer} quote={quote} 
+                    mode={mode} 
+                    switchMode={(m) => { setMode(m); setIsActive(false); setTimeLeft(m==='focus'?25*60:m==='short'?5*60:15*60); }} 
+                    timeLeft={timeLeft} isActive={isActive} 
+                    toggleTimer={() => setIsActive(!isActive)} 
+                    resetTimer={() => { setIsActive(false); setTimeLeft(mode==='focus'?25*60:mode==='short'?5*60:15*60); }} 
+                    quote={quote} 
                     activeSound={activeSound} setActiveSound={setActiveSound} 
-                    showConfetti={showConfetti} t={t} tasks={tasks} addTask={addTask}
-                    toggleTask={toggleTask} deleteTask={deleteTask} newTask={newTask}
-                    setNewTask={setNewTask}
+                    showConfetti={showConfetti} t={t} 
+                    tasks={tasks} addTask={addTask}
+                    toggleTask={toggleTask} deleteTask={deleteTask} 
+                    newTask={newTask} setNewTask={setNewTask}
                 />
             )}
             
             {activeTab === 'agenda' && (
                 <Agenda 
-                    localEvents={localEvents} setLocalEvents={setLocalEvents}
-                    showEventModal={showEventModal} setShowEventModal={setShowEventModal}
+                    localEvents={localEvents} // Eventos siguen siendo locales por ahora
+                    handleAddEvent={(e) => { e.preventDefault(); setLocalEvents([...localEvents, { id: Date.now(), ...newEvent }]); setShowEventModal(false); }}
                     newEvent={newEvent} setNewEvent={setNewEvent}
-                    handleAddEvent={handleAddEvent} t={t}
+                    showEventModal={showEventModal} setShowEventModal={setShowEventModal}
+                    t={t}
                 />
             )}
             
@@ -279,8 +311,9 @@ const App = () => {
             
             {activeTab === 'social' && (
                 <Social 
-                    friends={friends} addFriend={addFriend} 
-                    t={t} newFriendName={newFriendName} setNewFriendName={setNewFriendName}
+                    friends={friends} // Amigos siguen siendo locales por ahora
+                    addFriend={(e) => e.preventDefault()} 
+                    t={t} newFriendName={""} setNewFriendName={() => {}}
                 />
             )}
             
@@ -288,7 +321,7 @@ const App = () => {
         </main>
       </div>
 
-      {/* Bottom navigation */}
+      {/* Bottom Navigation */}
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl border border-white/50 shadow-2xl shadow-indigo-900/10 rounded-2xl p-1.5 flex gap-1 z-50">
         {[
           { id: 'timer', icon: <Clock size={20}/>, label: t('timer') },
