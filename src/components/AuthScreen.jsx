@@ -88,7 +88,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
     <div className="flex items-center justify-center min-h-screen p-4 font-sans bg-gray-50">
       <div className="w-full max-w-md overflow-hidden duration-300 bg-white border border-gray-100 shadow-xl rounded-3xl animate-in zoom-in-95">
         
-        {/* Header Visual */}
+        {/* Header visual */}
         <div className="relative p-8 overflow-hidden text-center bg-indigo-600">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="relative z-10 flex flex-col items-center">
@@ -115,7 +115,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
 
           <form onSubmit={handleAuth} className="space-y-4">
             
-            {/* Campo Nombre (Solo Registro) */}
+            {/* Campo nombre */}
             {!isLogin && (
               <div className="space-y-1 animate-in slide-in-from-left-2">
                 <label className="ml-1 text-xs font-bold text-gray-500 uppercase">Nombre</label>
@@ -133,7 +133,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
               </div>
             )}
 
-            {/* Campo Email */}
+            {/* Campo mail */}
             <div className="space-y-1">
               <label className="ml-1 text-xs font-bold text-gray-500 uppercase">Email</label>
               <div className="relative">
@@ -149,7 +149,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
               </div>
             </div>
 
-            {/* Campo Contraseña */}
+            {/* Campo contraseña */}
             <div className="space-y-1">
               <label className="ml-1 text-xs font-bold text-gray-500 uppercase">Contraseña</label>
               <div className="relative">
@@ -172,7 +172,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
               </div>
             </div>
 
-            {/* Botón Principal */}
+            {/* Botón principal */}
             <button 
               type="submit" 
               disabled={loading}
@@ -196,7 +196,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
-          {/* Botón Invitado */}
+          {/* Botón invitado */}
           <button 
             type="button"
             onClick={handleGuestLogin}
@@ -206,7 +206,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
             Modo Invitado (Demo)
           </button>
 
-          {/* Footer Toggle */}
+          {/* Footer toggle */}
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
               {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}

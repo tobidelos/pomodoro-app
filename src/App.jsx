@@ -33,14 +33,14 @@ const App = () => {
   const [userSettings, setUserSettings] = useState({ language: 'en' });
   const [showLangModal, setShowLangModal] = useState(false);
 
-  // Estados de Datos (XP, Amigos, Eventos)
+  // Estados de datos 
   const [xp, setXp] = useState(1250);
   const [level, setLevel] = useState(3);
   const [friends, setFriends] = useState(INITIAL_FRIENDS);
   const [newFriendName, setNewFriendName] = useState('');
   const [localEvents, setLocalEvents] = useState([]);
   
-  // Estados del Timer y Audio
+  // Estados del timer y audio
   const [mode, setMode] = useState('focus');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
@@ -48,7 +48,7 @@ const App = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [quote, setQuote] = useState(QUOTES[0]);
   
-  // Estados de Tareas y Modales
+  // Estados de tareas y modales
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
   const [showEventModal, setShowEventModal] = useState(false);
@@ -84,7 +84,7 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  //Sistema de Audio
+  //Sistema de audio
   useEffect(() => {
     try {
         if (activeSound) {
@@ -112,7 +112,7 @@ const App = () => {
     }
   }, [activeSound]);
 
-  //Lógica del Timer
+  //Lógica del timer
   useEffect(() => {
     if (isActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
@@ -201,7 +201,7 @@ const App = () => {
   return (
     <div className="relative flex flex-col items-center min-h-screen p-4 pb-24 font-sans text-gray-800 bg-gray-50 selection:bg-indigo-100">
       
-      {/* Modal de Idioma */}
+      {/* Modal de idioma */}
       {showLangModal && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
              <div className="bg-white rounded-3xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
@@ -221,7 +221,7 @@ const App = () => {
         </div>
       )}
 
-      {/* Main Container */}
+      {/* Main container */}
       <div className="flex-1 w-full max-w-md mx-auto">
         
         {/* Header */}
@@ -253,7 +253,7 @@ const App = () => {
           </div>
         </header>
 
-        {/* Content Tabs - Renderizado condicional de los componentes importados */}
+        {/* Content Tabs */}
         <main>
             {activeTab === 'timer' && (
                 <Timer 
@@ -288,7 +288,7 @@ const App = () => {
         </main>
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Bottom navigation */}
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl border border-white/50 shadow-2xl shadow-indigo-900/10 rounded-2xl p-1.5 flex gap-1 z-50">
         {[
           { id: 'timer', icon: <Clock size={20}/>, label: t('timer') },

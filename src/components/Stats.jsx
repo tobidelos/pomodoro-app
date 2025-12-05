@@ -1,6 +1,6 @@
 import React from 'react';
 import { BarChart2, TrendingUp } from 'lucide-react';
-import { MOCK_STATS_DATA, FRIEND_STATS_AVG } from '../data/constants'; // Asegúrate de importar MOCK_STATS_DATA de constants, no mocks
+import { MOCK_STATS_DATA, FRIEND_STATS_AVG } from '../data/constants'; 
 
 const Stats = ({ statsTimeframe, setStatsTimeframe, compareMode, setCompareMode, user, t }) => {
     // Definir datos
@@ -9,7 +9,7 @@ const Stats = ({ statsTimeframe, setStatsTimeframe, compareMode, setCompareMode,
     const barData = currentData.user;
     const friendData = currentData.friends;
     
-    // Obtener labels localizados si es semana
+    // Labels semana
     let labels = currentData.labels;
     if (statsTimeframe === 'week') {
         const daysTranslated = t('days');
@@ -44,29 +44,29 @@ const Stats = ({ statsTimeframe, setStatsTimeframe, compareMode, setCompareMode,
     const trendFill = `${trendPath} L 100,100 L 0,100 Z`;
 
     return (
-      <div className="animate-in fade-in duration-300 space-y-6">
-        {/* Gráfico de Barras (Principal) */}
-        <div className="bg-white rounded-3xl p-6 shadow-lg border border-gray-100">
+      <div className="space-y-6 duration-300 animate-in fade-in">
+        {/* Gráfico de Barras */}
+        <div className="p-6 bg-white border border-gray-100 shadow-lg rounded-3xl">
            <div className="flex items-center justify-between mb-6">
-               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2"><BarChart2 className="text-indigo-600" /> {t('myStats')}</h2>
-               <div className="flex bg-gray-100 rounded-lg p-1">
+               <h2 className="flex items-center gap-2 text-xl font-bold text-gray-900"><BarChart2 className="text-indigo-600" /> {t('myStats')}</h2>
+               <div className="flex p-1 bg-gray-100 rounded-lg">
                    {['day', 'week', 'month'].map(tf => (
                        <button key={tf} onClick={()=>setStatsTimeframe(tf)} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${statsTimeframe === tf ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400'}`}>{t(tf)}</button>
                    ))}
                </div>
            </div>
            
-           <div className="h-48 flex items-end justify-between gap-2 px-2 pb-2 border-b border-gray-100">
+           <div className="flex items-end justify-between h-48 gap-2 px-2 pb-2 border-b border-gray-100">
               {barData.map((val, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
-                   <div className="w-full flex items-end justify-center gap-1 h-32 relative">
+                <div key={i} className="relative flex flex-col items-center flex-1 gap-2 group">
+                   <div className="relative flex items-end justify-center w-full h-32 gap-1">
                       {/* Barra Usuario */}
-                      <div style={{ height: `${(val / (maxVal||1)) * 100}%` }} className="w-2 sm:w-4 bg-indigo-500 rounded-t-full transition-all duration-500 relative group-hover:bg-indigo-600">
+                      <div style={{ height: `${(val / (maxVal||1)) * 100}%` }} className="relative w-2 transition-all duration-500 bg-indigo-500 rounded-t-full sm:w-4 group-hover:bg-indigo-600">
                           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{val}m</div>
                       </div>
                       {/* Barra Amigo (Comparación) */}
                       {compareMode && (
-                          <div style={{ height: `${(friendData[i] / (maxVal||1)) * 100}%` }} className="w-2 sm:w-4 bg-gray-300 rounded-t-full transition-all duration-500 relative group-hover:bg-gray-400">
+                          <div style={{ height: `${(friendData[i] / (maxVal||1)) * 100}%` }} className="relative w-2 transition-all duration-500 bg-gray-300 rounded-t-full sm:w-4 group-hover:bg-gray-400">
                               <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-500 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{friendData[i]}m</div>
                           </div>
                       )}
@@ -76,7 +76,7 @@ const Stats = ({ statsTimeframe, setStatsTimeframe, compareMode, setCompareMode,
               ))}
            </div>
            
-           <div className="mt-6 flex items-center justify-between">
+           <div className="flex items-center justify-between mt-6">
                <div className="flex items-center gap-4 text-xs">
                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-indigo-500 rounded"></div> <span>{user.displayName}</span></div>
                    {compareMode && <div className="flex items-center gap-1"><div className="w-3 h-3 bg-gray-300 rounded"></div> <span>Avg. Friends</span></div>}
@@ -85,10 +85,10 @@ const Stats = ({ statsTimeframe, setStatsTimeframe, compareMode, setCompareMode,
            </div>
         </div>
 
-        {/* Gráfico de Tendencia (Pro Smooth SVG) */}
-        <div className="bg-white rounded-3xl p-6 shadow-lg border border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4"><TrendingUp className="text-emerald-500" size={18}/> {t('trend')}</h2>
-            <div className="h-40 w-full relative px-2">
+        {/* Gráfico de Tendencia */}
+        <div className="p-6 bg-white border border-gray-100 shadow-lg rounded-3xl">
+            <h2 className="flex items-center gap-2 mb-4 text-lg font-bold text-gray-900"><TrendingUp className="text-emerald-500" size={18}/> {t('trend')}</h2>
+            <div className="relative w-full h-40 px-2">
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible">
                     <line x1="0" y1="25" x2="100" y2="25" stroke="#f3f4f6" strokeWidth="0.5" />
                     <line x1="0" y1="50" x2="100" y2="50" stroke="#f3f4f6" strokeWidth="0.5" />

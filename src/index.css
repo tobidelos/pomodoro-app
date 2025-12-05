@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Personalización de la barra de desplazamiento */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
