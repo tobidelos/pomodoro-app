@@ -1,7 +1,5 @@
 import { Clock, Calendar, BarChart2, Users, User } from 'lucide-react';
 
-// --- 1. Constantes del Sistema (Niveles y Amigos) ---
-
 export const LEVEL_THRESHOLDS = {
   1: 500,
   2: 1200,
@@ -15,24 +13,17 @@ export const INITIAL_FRIENDS = [
   { id: 'f2', name: 'Carlos Ruiz', status: 'offline', avatar: 'bg-blue-100 text-blue-700', level: 2, xp: 1800 }
 ];
 
-// --- 2. Recursos Multimedia ---
-
 export const FOCUS_SOUNDS = [
-  { id: 'rain', name: 'Lluvia Suave', url: '/sounds/rain.mp3' },
-  { id: 'forest', name: 'Bosque', url: '/sounds/forest.mp3' },
-  { id: 'cafe', name: 'Cafetería', url: '/sounds/cafe.mp3' }
+  { id: 'rain', name: 'Lluvia Suave', url: '/src/assets/lluvia-rain-110426.mp3' },
+  { id: 'forest', name: 'Bosque', url: '/src/assets/forest-ambience-296528.mp3' },
+  { id: 'cafe', name: 'Cafetería', url: '/src/assets/ambient-sound-inside-cafeteria-18255.mp3' }
 ];
-
-// --- 3. Contenido de Texto (Frases) ---
 
 export const QUOTES = [
   { text: "El éxito es la suma de pequeños esfuerzos repetidos día tras día.", author: "Robert Collier" },
   { text: "No cuentes los días, haz que los días cuenten.", author: "Muhammad Ali" },
   { text: "La mejor forma de predecir el futuro es crearlo.", author: "Peter Drucker" }
 ];
-
-// --- 4. Datos para Gráficas y Perfil (Stats.jsx) ---
-// ¡Aquí está la variable que te faltaba! 👇
 
 export const FRIEND_STATS_AVG = {
   daily: 45,
