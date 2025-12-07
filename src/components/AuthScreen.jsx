@@ -85,7 +85,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
       } else {
         // --- REGISTRO ---
         if (username.trim().length < 3) {
-          throw new Error('El nombre de usuario debe tener al menos 3 caracteres.');
+          throw new Error('El nombre de usuario debe tener al menos 4 caracteres.');
         }
         
         // Crear usuario
@@ -133,7 +133,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
               <RotateCcw className="w-8 h-8 text-indigo-600" />
             </div>
             <h1 className="text-3xl font-black tracking-tight text-white">SyncStudy</h1>
-            <p className="mt-1 text-sm font-medium text-indigo-200">Tu espacio de productividad</p>
+            <p className="mt-1 text-sm font-medium text-indigo-200">Tu espacio de productividad favorito.</p>
           </div>
         </div>
 

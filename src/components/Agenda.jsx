@@ -57,7 +57,7 @@ const Agenda = ({
       {/* Calendario Visual */}
       <div className="p-4 bg-white border border-gray-100 shadow-sm rounded-3xl">
         <div className="flex items-center justify-between px-2 mb-4">
-          <span className="font-bold text-gray-700">Octubre 2023</span>
+          <span className="font-bold text-gray-700">Diciembre 2025</span>
           <CalendarIcon size={16} className="text-gray-400"/>
         </div>
         {renderCalendarGrid()}
