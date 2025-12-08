@@ -11,7 +11,7 @@ const Agenda = ({
   t = (key) => key // Protección CRÍTICA: si no llega 't', devuelve el texto original
 }) => {
 
-  // Generador de días del calendario (Visual)
+  // Generador de días del calendario 
   const renderCalendarGrid = () => {
     const days = Array.from({ length: 31 }, (_, i) => i + 1);
     return (

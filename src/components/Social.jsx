@@ -12,7 +12,7 @@ const Social = ({ user, t = (key) => key }) => {
   const [myFriends, setMyFriends] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   
-  // Estados de UI/Formularios
+  // Estados de UI
   const [searchName, setSearchName] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
@@ -20,7 +20,7 @@ const Social = ({ user, t = (key) => key }) => {
   // Estados para Modal de Borrado
   const [friendToDelete, setFriendToDelete] = useState(null);
 
-  // 1. CARGAR AMIGOS (Al iniciar)
+  // CARGAR AMIGOS 
   useEffect(() => {
     const fetchFriends = async () => {
       if (!user) return;
@@ -44,7 +44,7 @@ const Social = ({ user, t = (key) => key }) => {
     fetchFriends();
   }, [user]);
 
-  // 2. BUSCAR USUARIOS (CORREGIDO PARA MOSTRAR ERROR)
+  // BUSCAR USUARIOS 
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchName.trim()) return;
@@ -67,7 +67,6 @@ const Social = ({ user, t = (key) => key }) => {
       if (found.length === 0) setMsg('Usuario no encontrado.');
       
     } catch (error) { 
-      // AQUI ESTABA EL PROBLEMA: Ahora sí mostramos el error real
       console.error("❌ ERROR CRÍTICO AL BUSCAR:", error);
       
       if (error.code === 'permission-denied') {
@@ -81,7 +80,7 @@ const Social = ({ user, t = (key) => key }) => {
     finally { setLoading(false); }
   };
 
-  // 3. AGREGAR AMIGO
+  // AGREGAR AMIGO
   const executeAddFriend = async (friendId, friendName) => {
     try {
       await updateDoc(doc(db, "users", user.uid), { friends: arrayUnion(friendId) });
@@ -92,7 +91,7 @@ const Social = ({ user, t = (key) => key }) => {
     } catch (error) { console.error(error); setMsg('Error al agregar.'); }
   };
 
-  // 4. ELIMINAR AMIGO (Lógica del Modal)
+  // ELIMINAR AMIGO (Lógica del Modal)
   const executeRemoveFriend = async () => {
     if (!friendToDelete) return;
     try {
@@ -131,7 +130,7 @@ const Social = ({ user, t = (key) => key }) => {
               <span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-1 rounded-full">{myFriends.length}</span>
           </div>
           
-          {/* Buscador (Integrado con tu estilo) */}
+          {/* Buscador */}
           <div className="p-4 space-y-3 border-b border-gray-100 bg-gray-50">
               <form onSubmit={handleSearch} className="flex gap-2">
                   <div className="relative flex-1">
@@ -149,7 +148,7 @@ const Social = ({ user, t = (key) => key }) => {
                   </button>
               </form>
               
-              {/* Resultados de Búsqueda (Se muestran aquí) */}
+              {/* Resultados de Búsqueda */}
               {searchResults.length > 0 && (
                   <div className="p-2 space-y-2 bg-white border border-indigo-100 rounded-xl animate-in slide-in-from-top-2">
                       <p className="text-[10px] font-bold text-gray-400 uppercase ml-2">Resultados</p>

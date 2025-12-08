@@ -1,8 +1,8 @@
 import React from 'react';
-import { Award, Clock } from 'lucide-react'; // Asegúrate de importar los iconos
+import { Award, Clock } from 'lucide-react'; 
 
 const Stats = ({ user }) => {
-  // Datos simulados para la gráfica (no requieren importación externa)
+  // Datos simulados para la gráfica 
   const weeklyData = [40, 70, 30, 85, 50, 20, 60];
   const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 

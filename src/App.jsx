@@ -32,10 +32,10 @@ const App = () => {
   const [xp, setXp] = useState(0);
   const [level, setLevel] = useState(1);
   const [tasks, setTasks] = useState([]);
-  const [friends, setFriends] = useState(INITIAL_FRIENDS); // Por ahora local
-  const [localEvents, setLocalEvents] = useState([]);      // Por ahora local
+  const [friends, setFriends] = useState(INITIAL_FRIENDS); 
+  const [localEvents, setLocalEvents] = useState([]);      
   
-  // Estados del Timer y Audio
+  // Estados del timer y audio
   const [mode, setMode] = useState('focus');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
@@ -43,7 +43,7 @@ const App = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [quote, setQuote] = useState(QUOTES[0]);
   
-  // Estados Auxiliares
+  // Estados auxiliares
   const [newTask, setNewTask] = useState('');
   const [showEventModal, setShowEventModal] = useState(false);
   const [newEvent, setNewEvent] = useState({ title: '', time: '', type: 'study' });
@@ -55,15 +55,14 @@ const App = () => {
   const t = (key, subKey) => getT(userSettings.language || 'en', key, subKey);
   const currentLevelMax = LEVEL_THRESHOLDS[level] || 10000;
 
-  // --- EFECTOS (LÓGICA) ---
+  // --- EFECTOS ---
 
-  // 1. Autenticación y Carga de Datos
+  // Autenticación y Carga de Datos
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       
       if (currentUser) {
-        // ¡Aquí ocurre la magia! Cargamos los datos de la nube
         const userRef = doc(db, "users", currentUser.uid);
         const userSnap = await getDoc(userRef);
 
@@ -94,7 +93,7 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // 2. Sistema de Audio
+  // Sistema de Audio
   useEffect(() => {
     try {
         if (activeSound) {
@@ -122,14 +121,13 @@ const App = () => {
     }
   }, [activeSound]);
 
-  // 3. Lógica del Timer (Optimizado para ahorrar escrituras)
+  // Lógica del Timer 
   useEffect(() => {
     if (isActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
     } else if (timeLeft === 0) {
-      // ¡EL TIMER TERMINÓ! 
       setIsActive(false); 
       clearInterval(timerRef.current);
       
@@ -143,23 +141,22 @@ const App = () => {
     return () => clearInterval(timerRef.current);
   }, [isActive, timeLeft, mode]);
 
-  // --- FUNCIONES DE BASE DE DATOS (SYNC) ---
+  // --- FUNCIONES DE BASE DE DATOS ---
 
   const handleSessionComplete = async () => {
-      // 1. Efectos visuales inmediatos
       const xpGained = 100;
       setXp(prev => prev + xpGained); 
       setShowConfetti(true); 
       setTimeout(() => setShowConfetti(false), 5000);
 
-      // 2. Cálculo de nivel
+      // Cálculo de nivel
       let newLevel = level;
       if ((xp + xpGained) >= (LEVEL_THRESHOLDS[level] || 10000)) {
           newLevel = level + 1;
           setLevel(newLevel);
       }
 
-      // 3. GUARDAR EN FIREBASE (Solo 1 escritura al terminar)
+      //GUARDAR EN FIREBASE (1 escritura)
       if (user) {
           try {
               const userRef = doc(db, "users", user.uid);
@@ -180,12 +177,12 @@ const App = () => {
 
       const taskObj = { id: Date.now(), text: newTask, completed: false };
       
-      // 1. Actualizar visualmente (rápido)
+      //Actualizar visualmente 
       const updatedTasks = [taskObj, ...tasks];
       setTasks(updatedTasks);
       setNewTask(''); 
 
-      // 2. Guardar en Firebase
+      //Guardar en Firebase
       if (user) {
           const userRef = doc(db, "users", user.uid);
           await updateDoc(userRef, { tasks: updatedTasks });
@@ -193,13 +190,13 @@ const App = () => {
   };
 
   const toggleTask = async (taskToToggle) => { 
-      // 1. Actualizar visualmente
+      //Actualizar visualmente
       const updatedTasks = tasks.map(t => 
           t.id === taskToToggle.id ? { ...t, completed: !t.completed } : t
       );
       setTasks(updatedTasks);
 
-      // 2. Guardar en Firebase
+      //Guardar en Firebase
       if (user) {
           const userRef = doc(db, "users", user.uid);
           await updateDoc(userRef, { tasks: updatedTasks });
@@ -207,18 +204,18 @@ const App = () => {
   };
 
   const deleteTask = async (id) => { 
-      // 1. Actualizar visualmente
+      //Actualizar visualmente
       const updatedTasks = tasks.filter(t => t.id !== id);
       setTasks(updatedTasks);
 
-      // 2. Guardar en Firebase
+      //Guardar en Firebase
       if (user) {
           const userRef = doc(db, "users", user.uid);
           await updateDoc(userRef, { tasks: updatedTasks });
       }
   };
 
-  // --- RENDERIZADO ---
+  // ---RENDERIZADO---
 
   if (loading) return <div className="flex items-center justify-center min-h-screen font-bold text-indigo-600 bg-gray-50 animate-pulse">Cargando SyncStudy...</div>;
 
