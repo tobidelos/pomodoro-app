@@ -295,7 +295,7 @@ const App = () => {
             
             {activeTab === 'agenda' && (
                 <Agenda 
-                    localEvents={localEvents} // Eventos siguen siendo locales por ahora
+                    localEvents={localEvents} 
                     handleAddEvent={(e) => { e.preventDefault(); setLocalEvents([...localEvents, { id: Date.now(), ...newEvent }]); setShowEventModal(false); }}
                     newEvent={newEvent} setNewEvent={setNewEvent}
                     showEventModal={showEventModal} setShowEventModal={setShowEventModal}
@@ -307,7 +307,7 @@ const App = () => {
             
             {activeTab === 'social' && (
                 <Social 
-                    friends={friends} // Amigos siguen siendo locales por ahora
+                    friends={friends} 
                     addFriend={(e) => e.preventDefault()} 
                     t={t} newFriendName={""} setNewFriendName={() => {}}
                 />

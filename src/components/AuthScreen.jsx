@@ -46,18 +46,17 @@ const AuthScreen = ({ onLoginSuccess }) => {
       if (onLoginSuccess) onLoginSuccess();
     } catch (err) {
       console.error("Google Auth Error:", err);
-      setError("Error al iniciar con Google. Verifica tu configuración en Firebase.");
+      setError("Error al iniciar con Google.");
       setLoading(false);
     }
   };
 
-  // Login como Invitado (Demo)
+  // Login como invitado 
   const handleGuestLogin = async () => {
     setError('');
     setLoading(true);
     try {
       await signInAnonymously(auth);
-      // Opcional: Darle un nombre temporal al invitado
       if (auth.currentUser) {
           await updateProfile(auth.currentUser, { 
               displayName: "Invitado",
@@ -139,7 +138,7 @@ const AuthScreen = ({ onLoginSuccess }) => {
 
         <div className="p-8">
           <h2 className="mb-6 text-xl font-bold text-center text-gray-800">
-            {isLogin ? '¡Hola de nuevo!' : 'Crear Cuenta'}
+            {isLogin ? '¡Bienvenido!' : 'Crear Cuenta'}
           </h2>
 
           {error && (
